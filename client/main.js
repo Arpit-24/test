@@ -3,20 +3,41 @@ import { ReactiveVar } from 'meteor/reactive-var';
 
 import './main.html';
 
-Template.hello.onCreated(function helloOnCreated() {
-  // counter starts at 0
-  this.counter = new ReactiveVar(0);
+Resolutions = new Mongo.Collection('resolutions');
+
+Template.body.helpers({
+  resolutions: function () {
+  	if(Session.get('hideFinished')) {
+  		return Resolutions.find({checked: {$ne: true}});
+  	} else {
+  		return Resolutions.find();
+  	}
+  }
 });
 
-Template.hello.helpers({
-  counter() {
-    return Template.instance().counter.get();
+Template.body.events({
+  'submit .new-resolution': function(event) {
+    var title = event.target.title.value;
+
+    Resolutions.insert({
+    	title: title,
+    	createdAt: new Date()
+    });
+
+    event.target.title.value = "";
+
+    return false;
   },
+  'change .hide-finished': function(event) {
+  	Session.set('hideFinished', event.target.checked);
+  }
 });
 
-Template.hello.events({
-  'click button'(event, instance) {
-    // increment the counter when button is clicked
-    instance.counter.set(instance.counter.get() + 1);
-  },
+Template.resolution.events({
+	'click .delete': function() {
+		Resolutions.remove(this._id);
+	},
+	'click .toggle-checked': function() {
+		Resolutions.update(this._id, {$set: {checked: !this.checked}});
+	}
 });
